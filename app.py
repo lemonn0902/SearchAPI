@@ -25,7 +25,7 @@ from google.genai.types import (
 )
 
 app = Flask(__name__)
-CORS(app, origins="*")
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
 
 # # Start ngrok
 # ngrok.set_auth_token("2yixWcyavcFl6DGPUMEOQZ2QKiJ_3Jm9iKnYb1svHPJg9Ltz7")
