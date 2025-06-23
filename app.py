@@ -2,7 +2,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
-from google.genai.types import Part
+from google.generativeai.types import Part
 from google.cloud import storage, firestore
 import os
 import traceback
