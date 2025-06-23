@@ -1,0 +1,286 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Add these styles to your existing App.css */
+
+/* Clickable Question Styles */
+.clickable-question {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  margin: 8px 0;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.clickable-question:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  border-color: #5a67d8;
+}
+
+.clickable-question:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.question-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: white;
+}
+
+.question-icon {
+  color: #e2e8f0;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.question-text {
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+  flex: 1;
+}
+
+.click-hint {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.clickable-question:hover .click-hint {
+  opacity: 1;
+}
+
+/* Add a subtle animation effect */
+.clickable-question::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.clickable-question:hover::before {
+  left: 100%;
+}
+
+/* Section header styles */
+.response-section-header {
+  margin: 20px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.response-section-header h3 {
+  color: #2d3748;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Style for clicked question messages */
+.message.clicked-question .message-content {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+}
+
+.message.clicked-question .message-content .message-text {
+  font-weight: 500;
+}
+
+/* Enhanced response formatting */
+.formatted-response {
+  line-height: 1.6;
+}
+
+.response-text {
+  margin-bottom: 12px;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.response-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding-left: 8px;
+}
+
+.response-bullet .bullet {
+  color: #667eea;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+.response-section {
+  margin: 16px 0;
+  padding: 12px 0;
+  border-left: 4px solid #667eea;
+  padding-left: 16px;
+}
+
+.response-section h4 {
+  color: #2d3748;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.section-number {
+  color: #667eea;
+  font-weight: bold;
+}
+
+.response-title {
+  background: #f7fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  border-left: 4px solid #667eea;
+}
+
+.response-title h3 {
+  color: #2d3748;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.response-main-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.response-main-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Responsive design for clickable questions */
+@media (max-width: 768px) {
+  .clickable-question {
+    padding: 12px;
+    margin: 6px 0;
+  }
+  
+  .question-text {
+    font-size: 14px;
+  }
+  
+  .click-hint {
+    font-size: 11px;
+    top: 6px;
+    right: 8px;
+  }
+}
+
+/* Add subtle pulse animation for clickable questions */
+@keyframes pulse-border {
+  0% {
+    border-color: #667eea;
+  }
+  50% {
+    border-color: #5a67d8;
+  }
+  100% {
+    border-color: #667eea;
+  }
+}
+
+.clickable-question {
+  animation: pulse-border 3s ease-in-out infinite;
+}
+
+.clickable-question:hover {
+  animation: none;
+}
