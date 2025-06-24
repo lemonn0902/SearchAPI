@@ -16,7 +16,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import './App.css';
-
+import logo from './1695728614622.jpeg'; // Adjust the path as necessary
 function App() {
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -64,13 +64,13 @@ function App() {
       }
 
       const response = await axios.post(
-        'https://b665-34-57-252-46.ngrok-free.app/ask',
+        'https://pdf-processor-653017553136.us-central1.run.app/ask',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' }
         }
       );
-
+      console.log('Response from server:', response.data.answer);
       const botResponse = {
         id: Date.now() + 1,
         type: 'bot',
@@ -104,6 +104,7 @@ function App() {
     // Extract the actual question text (remove the number and any markdown)
     const cleanQuestion = question.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
     getData(cleanQuestion);
+
   };
 
   const handleFileChange = (files) => {
@@ -153,131 +154,172 @@ function App() {
   };
 
   const formatBotResponse = (text) => {
-    if (!text || typeof text !== 'string') return null;
+  if (!text || typeof text !== 'string') return null;
 
-    const lines = text.split('\n').filter(line => line.trim());
-    const elements = [];
-    let currentKey = 0;
-    let inClientQuestionsSection = false;
+  const lines = text.split('\n').filter(line => line.trim());
+  const elements = [];
+  let currentKey = 0;
+  let inClientQuestionsSection = false;
+  let inClientAskQuestionsSection = false;
 
-    for (let line of lines) {
-      line = line.trim();
-      if (!line) continue;
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
 
-      // Check if we're entering the "Best Next Client Questions" section
-      if (line.includes('Best Next Client Questions') || line.includes('💬')) {
-        inClientQuestionsSection = true;
+    if (line.includes('Best Next Client Questions') || line.includes('💬')) {
+      inClientQuestionsSection = true;
+      inClientAskQuestionsSection = false;
+      elements.push(
+        <div key={currentKey++} className="response-section-header">
+          <h3 className='suggestions'>{line.replace(/💬/g, '').replace(/\*\*/g, '')}</h3>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.includes('Answer') || line.includes('## Answer')) {
+      inClientQuestionsSection = false;
+      inClientAskQuestionsSection = false;
+      elements.push(
+        <div key={currentKey++} className="response-main-header">
+          <h2>{line.replace(/##/g, '').replace(/\*\*/g, '').trim()}</h2>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.includes('BANT Follow-up Questions') || line.includes('🔍')) {
+      inClientQuestionsSection = false;
+      inClientAskQuestionsSection = false;
+      elements.push(
+        <div key={currentKey++} className="response-section-header">
+          <h3>{line.replace(/🔍/g, '').replace(/\*\*/g, '').trim()}</h3>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.includes('Suggested Questions To Ask the Clients') || line.includes('📌')) {
+      inClientAskQuestionsSection = true;
+      inClientQuestionsSection = false;
+      elements.push(
+        <div key={currentKey++} className="response-section-header">
+          <h3>{line.replace(/📌/g, '').replace(/\*\*/g, '').trim()}</h3>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.startsWith('###')) {
+      elements.push(
+        <div key={currentKey++} className="response-subsection-header">
+          <h4>{line.replace(/###/g, '').trim()}</h4>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.includes('"') && (line.includes('BANT') || line.includes('Follow-up'))) {
+      elements.push(
+        <div key={currentKey++} className="response-title">
+          <h3>{line.replace(/"/g, '')}</h3>
+        </div>
+      );
+    }
+
+    // ✅ NEW: Handle numbered lines with bold section + colon + explanation
+    if (/^\d+\.\s*\*\*[^*]+\*\*:?\s*.+/.test(line)) {
+      const match = line.match(/^(\d+)\.\s*\*\*([^*]+)\*\*:\s*(.+)/);
+      if (match) {
+        const number = match[1];
+        const title = match[2];
+        const description = match[3];
         elements.push(
-          <div key={currentKey++} className="response-section-header">
-            <h3>{line.replace(/💬/g, '').replace(/\*\*/g, '')}</h3>
+          <div key={currentKey++} className="response-numbered-item full-question">
+            <span className="item-number">{number}.</span>
+            <span className="item-text"><strong>{title}:</strong> {description}</span>
           </div>
         );
         continue;
       }
+    }
 
-      // Handle other section headers that should reset the client questions flag
-      if ((line.includes('🔍') || line.includes('📌')) && !line.includes('💬')) {
-        inClientQuestionsSection = false;
-      }
-
-      // Handle titles with "BANT+C" or similar patterns
-      if (line.includes('"') && (line.includes('BANT') || line.includes('Follow-up'))) {
-        elements.push(
-          <div key={currentKey++} className="response-title">
-            <h3>{line.replace(/"/g, '')}</h3>
+    if (/^\d+\.\s/.test(line) && inClientQuestionsSection) {
+      const questionText = line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
+      elements.push(
+        <div key={currentKey++} className="clickable-question" onClick={() => handleQuestionClick(line)}>
+          <div className="question-content">
+            <span className="question-text">{questionText}</span>
           </div>
-        );
-      }
-      // Handle "Overview of the PDF" or similar section headers
-      else if (line.startsWith('**') && line.endsWith('**') && !line.includes('(')) {
-        elements.push(
-          <div key={currentKey++} className="response-main-header">
-            <h2>{line.replace(/\*\*/g, '')}</h2>
-          </div>
-        );
-      }
-      // Handle numbered sections with bold text
-      else if (/^\d+\.\s*\*\*[^*]+\*\*/.test(line)) {
-        const match = line.match(/^(\d+)\.\s*\*\*([^*]+)\*\*/);
-        if (match) {
-          elements.push(
-            <div key={currentKey++} className="response-section">
-              <h4><span className="section-number">{match[1]}.</span> {match[2]}</h4>
-            </div>
-          );
-        }
-      }
-      // Handle numbered questions (make clickable if in client questions section)
-      else if (/^\d+\.\s/.test(line) && inClientQuestionsSection) {
-        const questionText = line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
-        elements.push(
-          <div key={currentKey++} className="clickable-question" onClick={() => handleQuestionClick(line)}>
-            <div className="question-content">
-              <MessageCircle size={16} className="question-icon" />
-              <span className="question-text">{questionText}</span>
-            </div>
-            <div className="click-hint">Click to ask</div>
-          </div>
-        );
-      }
-      // Handle bullet points
-      else if (/^\s*[-•*]\s/.test(line)) {
-        const cleanText = line.replace(/^\s*[-•*]\s*/, '');
-        // Check if bullet text has bold formatting
-        if (cleanText.includes('**')) {
-          const parts = cleanText.split(/(\*\*[^*]+\*\*)/g);
-          const formattedParts = parts.map((part, index) =>
-            part.startsWith('**') && part.endsWith('**') ? (
-              <strong key={index}>{part.slice(2, -2)}</strong>
-            ) : part
-          );
-          elements.push(
-            <div key={currentKey++} className="response-bullet">
-              <span className="bullet">•</span>
-              <span>{formattedParts}</span>
-            </div>
-          );
-        } else {
-          elements.push(
-            <div key={currentKey++} className="response-bullet">
-              <span className="bullet">•</span>
-              <span>{cleanText}</span>
-            </div>
-          );
-        }
-      }
-      // Handle lines with bold text
-      else if (line.includes('**')) {
-        const parts = line.split(/(\*\*[^*]+\*\*)/g);
+          <div className="click-hint">Click to ask</div>
+        </div>
+      );
+    } else if (/^\d+\.\s/.test(line)) {
+      const itemText = line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
+      elements.push(
+        <div key={currentKey++} className="response-numbered-item">
+          <span className="item-number">{line.match(/^(\d+)\./)[1]}.</span>
+          <span className="item-text">{itemText}</span>
+        </div>
+      );
+    } else if (/^\s*[-•*]\s/.test(line)) {
+      const cleanText = line.replace(/^\s*[-•*]\s*/, '');
+      if (cleanText.includes('**')) {
+        const parts = cleanText.split(/(\*\*[^*]+\*\*)/g);
         const formattedParts = parts.map((part, index) =>
           part.startsWith('**') && part.endsWith('**') ? (
             <strong key={index}>{part.slice(2, -2)}</strong>
           ) : part
         );
-        elements.push(<p key={currentKey++} className="response-text">{formattedParts}</p>);
-      }
-      // Handle section headers with emojis
-      else if (/^[🔍📌💬]/.test(line)) {
-        // Check if this is starting client questions section
-        if (line.includes('💬') || line.includes('Best Next Client Questions')) {
-          inClientQuestionsSection = true;
-        } else {
-          inClientQuestionsSection = false;
-        }
         elements.push(
-          <div key={currentKey++} className="response-section-header">
-            <h3>{line.replace(/\*\*/g, '')}</h3>
+          <div key={currentKey++} className="response-bullet">
+            <span className="bullet">•</span>
+            <span>{formattedParts}</span>
+          </div>
+        );
+      } else {
+        elements.push(
+          <div key={currentKey++} className="response-bullet">
+            <span className="bullet">•</span>
+            <span>{cleanText}</span>
           </div>
         );
       }
-      // Handle regular text
-      else {
-        elements.push(<p key={currentKey++} className="response-text">{line}</p>);
+    } else if (line === '---') {
+      elements.push(
+        <div key={currentKey++} className="response-divider">
+          <hr />
+        </div>
+      );
+    } else if (line.includes('**')) {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      const formattedParts = parts.map((part, index) =>
+        part.startsWith('**') && part.endsWith('**') ? (
+          <strong key={index}>{part.slice(2, -2)}</strong>
+        ) : part
+      );
+      elements.push(<p key={currentKey++} className="response-text">{formattedParts}</p>);
+    } else if (/^[🔍📌💬]/.test(line)) {
+      if (line.includes('💬') || line.includes('Best Next Client Questions')) {
+        inClientQuestionsSection = true;
+        inClientAskQuestionsSection = false;
+      } else {
+        inClientQuestionsSection = false;
+        inClientAskQuestionsSection = false;
       }
+      elements.push(
+        <div key={currentKey++} className="response-section-header">
+          <h3>{line.replace(/\*\*/g, '')}</h3>
+        </div>
+      );
+    } else {
+      elements.push(<p key={currentKey++} className="response-text">{line}</p>);
     }
+  }
 
-    return elements;
-  };
+  return elements;
+};
+
 
   return (
     <div className="app-container">
@@ -285,11 +327,11 @@ function App() {
       <div className="header">
         <div className="header-content">
           <div className="header-icon">
-            <Sparkles className="sparkle-icon" />
+            <img src={logo} className="company-logo" />
           </div>
           <div className="header-text">
-            <h1>Spiked AI Test </h1>
-            <p>Ask questions about your PDFs</p>
+            <h1 className='spiked-title'>Spiked AI Test </h1>
+            <p className='short-txt'>Ask questions about your PDFs</p>
           </div>
         </div>
       </div>
@@ -303,7 +345,7 @@ function App() {
                 <Bot size={48} />
               </div>
               <h2>Welcome to Spiked AI </h2>
-              <p>Upload your PDF documents and ask questions to get instant answers powered by AI.</p>
+              <p className='short-txt'>Upload your PDF documents and ask questions to get instant answers powered by AI.</p>
             </div>
           )}
 
