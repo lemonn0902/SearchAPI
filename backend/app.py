@@ -53,7 +53,18 @@ model = TextEmbeddingModel.from_pretrained(MODEL_ID_Text)
 from sentence_transformers import SentenceTransformer
 import math
 import hashlib
+import fitz  # PyMuPDF
 
+def extract_text_from_pdf_bytes(pdf_bytes):
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text.strip()
+    except Exception as e:
+        print(f"[Error] Failed to extract text from PDF: {e}")
+        return ""
 # Load local fallback model
 local_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -121,6 +132,70 @@ def Get_Most_Similar_Question(questions, question, threshold=0.85):
 
     print(f"[Info] Best similarity: {best_score:.3f}")
     return questions[best_index]
+def get_pdf_embeddings(pdf_texts: list[str]) -> list[list[float]]:
+    """
+    Given a list of PDF text contents, returns a list of their vector embeddings.
+
+    Args:
+        pdf_texts (list[str]): List of PDF contents (strings).
+
+    Returns:
+        List of embeddings (one per PDF), where each embedding is a list of floats.
+    """
+    pdf_embeddings = []
+
+    for idx, text in enumerate(pdf_texts):
+        try:
+            if not text.strip():
+                print(f"[Warning] PDF at index {idx} is empty. Skipping.")
+                pdf_embeddings.append([])
+                continue
+
+            embedding = Get_Vector_Embeddings(text)
+            pdf_embeddings.append(embedding)
+        except Exception as e:
+            print(f"[Error] Failed to get embedding for PDF {idx}: {e}")
+            pdf_embeddings.append([])  # Append empty vector to maintain index consistency
+
+    return pdf_embeddings
+def Get_Most_Similar_pdfs(pdf_embeddings: list[list[float]], question: str, threshold: float = 0.3):
+    """
+    Given a list of precomputed PDF embeddings and a question,
+    returns the index of the PDF most semantically similar to the question.
+
+    Args:
+        pdf_embeddings (list[list[float]]): List of vector embeddings for PDFs.
+        question (str): User's input question.
+        threshold (float): Minimum similarity to consider a valid match.
+
+    Returns:
+        int or None: Index of the best matching PDF, or None if none exceed threshold.
+    """
+    if not pdf_embeddings:
+        return None
+
+    question_embedding = Get_Vector_Embeddings(question)
+    best_index = -1
+    best_score = -1
+
+    for idx, pdf_embedding in enumerate(pdf_embeddings):
+        if not pdf_embedding:  # Skip empty embeddings
+            continue
+        try:
+            score = cosine_similarity(question_embedding, pdf_embedding)
+            if score > threshold and score > best_score:
+                best_score = score
+                best_index = idx
+        except Exception as e:
+            print(f"[Error] Similarity check failed at PDF index {idx}: {e}")
+            continue
+
+    if best_index == -1:
+        print("[Info] No PDF passed the similarity threshold.")
+        return None
+
+    print(f"[Info] Most similar PDF index: {best_index} with score {best_score:.3f}")
+    return best_index
 
 def check_file_exists_in_bucket(filename, file_size):
     """Check if a file with the same name and size already exists in bucket"""
@@ -337,10 +412,13 @@ def get_all_pdfs_from_bucket():
     except Exception as e:
         print(f"🔥 Error getting PDFs from bucket: {str(e)}")
         return []
-parts_with_pdfs=[]
 bucket_pdfs = get_all_pdfs_from_bucket()
-for pdf_bytes in bucket_pdfs:
-      parts_with_pdfs.append(Part(inline_data={"data": pdf_bytes, "mime_type": "application/pdf"}))
+
+# Convert to extracted text
+pdf_texts = [extract_text_from_pdf_bytes(pdf_bytes) for pdf_bytes in bucket_pdfs]
+
+# Now embed
+Pdf_Embeddings = get_pdf_embeddings(pdf_texts)
 def ask_with_multiple_pdfs(tokens, prompt, question, pdf_files=None):
     try:
         parts=[]
@@ -353,8 +431,8 @@ def ask_with_multiple_pdfs(tokens, prompt, question, pdf_files=None):
                     continue
                 parts.append(Part(inline_data={"data": file_bytes, "mime_type": "application/pdf"}))
         else:
-            # If no pdf_files provided, get all PDFs from bucket (cached)
-            parts=parts_with_pdfs
+            Best_Pdf_Index = Get_Most_Similar_pdfs(Pdf_Embeddings,question)
+            parts.append(parts_with_pdfs[Best_Pdf_Index])
 
         parts.append(question)
         parts.append(prompt)
